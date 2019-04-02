@@ -1,5 +1,6 @@
 .DS_Store
 .cache
+.idea
 
 # Log files
 Logs
@@ -13,3 +14,4 @@ Logs
 # python 
 __pycache__/
 *.pyc
+
