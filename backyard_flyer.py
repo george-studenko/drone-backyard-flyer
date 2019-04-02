@@ -9,7 +9,6 @@ from udacidrone.connection import MavlinkConnection, WebSocketConnection  # noqa
 from udacidrone.messaging import MsgID
 
 
-
 class States(Enum):
     MANUAL = 0
     ARMING = 1
@@ -20,16 +19,13 @@ class States(Enum):
 
 
 class BackyardFlyer(Drone):
-
     def __init__(self, connection):
         super().__init__(connection)
         self.target_position = np.array([0.0, 0.0, 0.0])
         self.all_waypoints = []
         self.in_mission = True
         self.check_state = {}
-        self.square = [[5,0,3,0],[5,5,3,0],[0,5,3,0], [0,0,3,0] ]
         self.current_waypoint = 0
-
 
         # initial state
         self.flight_state = States.MANUAL
@@ -38,6 +34,8 @@ class BackyardFlyer(Drone):
         self.register_callback(MsgID.LOCAL_POSITION, self.local_position_callback)
         self.register_callback(MsgID.LOCAL_VELOCITY, self.velocity_callback)
         self.register_callback(MsgID.STATE, self.state_callback)
+
+
 
     def local_position_callback(self):
         """
@@ -61,14 +59,23 @@ class BackyardFlyer(Drone):
 
         This triggers when `MsgID.STATE` is received and self.armed and self.guided contain new data
         """
-        pass
+        if not self.in_mission:
+            return
+        if self.flight_state == States.MANUAL:
+            self.arming_transition()
+        elif self.flight_state == States.ARMING:
+            if self.armed:
+                self.takeoff_transition()
+        elif self.flight_state == States.DISARMING:
+            if not self.armed:
+                self.manual_transition()
 
     def calculate_box(self):
         """
         1. Return waypoints to fly a box
         """
 
-        return [[5,0,3,0],[5,5,3,0],[0,5,3,0], [0,0,3,0]]
+        return [[5, 0, 3, 0], [5, 5, 3, 0], [0, 5, 3, 0], [0, 0, 3, 0]]
 
     def arming_transition(self):
         """
@@ -78,22 +85,23 @@ class BackyardFlyer(Drone):
         4. Transition to the ARMING state
         """
         print("arming transition")
-        drone.take_control()
-        drone.arm()
-        drone.set_home_position(drone.global_position[0],
-                        drone.global_position[1],
-                        drone.global_position[2])
+        self.take_control()
+        self.arm()
+        self.set_home_position(self.global_position[0],
+                                self.global_position[1],
+                                self.global_position[2])
         self.flight_state = States.ARMING
 
-
     def takeoff_transition(self):
-        """TODO: Fill out this method
-
+        """
         1. Set target_position altitude to 3.0m
         2. Command a takeoff to 3.0m
         3. Transition to the TAKEOFF state
         """
         print("takeoff transition")
+        self.target_position = np.array([0.0, 0.0, 3.0])
+        self.takeoff(3)
+        self.flight_state = States.TAKEOFF
 
     def waypoint_transition(self):
         """TODO: Fill out this method
@@ -101,8 +109,8 @@ class BackyardFlyer(Drone):
         1. Command the next waypoint position
         2. Transition to WAYPOINT state
         """
-
         print("waypoint transition")
+        
 
     def landing_transition(self):
         """TODO: Fill out this method
@@ -157,7 +165,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     conn = MavlinkConnection('tcp:{0}:{1}'.format(args.host, args.port), threaded=False, PX4=False)
-    #conn = WebSocketConnection('ws://{0}:{1}'.format(args.host, args.port))
+    # conn = WebSocketConnection('ws://{0}:{1}'.format(args.host, args.port))
     drone = BackyardFlyer(conn)
     time.sleep(2)
     drone.start()
