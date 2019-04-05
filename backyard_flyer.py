@@ -45,7 +45,7 @@ class BackyardFlyer(Drone):
         if self.flight_state == States.TAKEOFF:
             # coordinate conversion
             altitude = -1.0 * self.local_position[2]
-            self.starting_point = [self.local_position[0], self.local_position[1], (self.local_position[2] * -1)  + 3]
+            self.starting_point = [self.local_position[0], self.local_position[1], (self.local_position[2] * -1)]
             # check if altitude is within 95% of target
             self.all_waypoints = self.get_box()
             print(self.local_position)
