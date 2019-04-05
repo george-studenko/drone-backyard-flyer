@@ -32,7 +32,7 @@ class BackyardFlyer(Drone):
         # initial state
         self.flight_state = States.MANUAL
 
-        # Register all your callbacks here
+        # Register all your callbacks
         self.register_callback(MsgID.LOCAL_POSITION, self.local_position_callback)
         self.register_callback(MsgID.LOCAL_VELOCITY, self.velocity_callback)
         self.register_callback(MsgID.STATE, self.state_callback)
@@ -67,10 +67,11 @@ class BackyardFlyer(Drone):
         """
         This triggers when `MsgID.LOCAL_VELOCITY` is received and self.local_velocity contains new data
         """
-        if self.flight_state == States.LANDING:
-            if ((self.global_position[2] - self.global_home[2] < 0.1) and
-                        abs(self.local_position[2]) < 0.01):
-                self.disarming_transition()
+        #if self.flight_state == States.LANDING:
+        #    if ((self.global_position[2] - self.global_home[2] < 0.1) and
+        #                abs(self.local_position[2]) < 0.01):
+        #        self.disarming_transition()
+        pass
 
     def state_callback(self):
         """
@@ -79,17 +80,18 @@ class BackyardFlyer(Drone):
         if not self.in_mission:
             return
         if self.flight_state == States.MANUAL:
-            self.arming_transition()
+            # now just passively waiting for the pilot to change these attributes
+            # once the pilot changes, need to update our internal state
+            if self.guided:
+                self.flight_state = States.ARMING
         elif self.flight_state == States.ARMING:
             if self.armed:
                 self.takeoff_transition()
         elif self.flight_state == States.LANDING:
             self.landing_transition()
         elif self.flight_state == States.DISARMING:
-            if not self.armed:
+            if not self.armed and not self.guided:
                 self.manual_transition()
-
-
 
     def arming_transition(self):
         """
@@ -197,11 +199,11 @@ class BackyardFlyer(Drone):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', type=int, default=5760, help='Port number')
-    parser.add_argument('--host', type=str, default='127.0.0.1', help="host address, i.e. '127.0.0.1'")
+    parser.add_argument('--port', type=int, default=14550, help='Port number')
+    parser.add_argument('--host', type=str, default='192.168.1.182', help="host address, i.e. '127.0.0.1'")
     args = parser.parse_args()
 
-    conn = MavlinkConnection('tcp:{0}:{1}'.format(args.host, args.port), threaded=False, PX4=False)
+    conn = MavlinkConnection('udp:{0}:{1}'.format(args.host, args.port), threaded=False, PX4=True)
     # conn = WebSocketConnection('ws://{0}:{1}'.format(args.host, args.port))
     drone = BackyardFlyer(conn)
     time.sleep(2)
